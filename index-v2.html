@@ -137,8 +137,51 @@
     }
     #gesture_pad.active-pad {
       pointer-events: auto;
-      background: rgba(7, 11, 20, 0.72);
+      background: rgba(7, 11, 20, 0.65);
       cursor: crosshair;
+    }
+    .draw-hint {
+      position: absolute;
+      top: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(10, 15, 28, 0.9);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      pointer-events: none;
+      z-index: 10;
+      display: none;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 0 15px rgba(0, 242, 254, 0.25);
+      text-align: center;
+      white-space: nowrap;
+    }
+    .draw-hint.visible { display: block; }
+    .recog-toast {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.6);
+      background: rgba(7, 11, 20, 0.94);
+      border: 2px solid var(--accent);
+      color: #00f2fe;
+      padding: 14px 28px;
+      border-radius: 16px;
+      font-size: 2.4rem;
+      font-weight: 800;
+      pointer-events: none;
+      z-index: 20;
+      opacity: 0;
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 0 35px rgba(0, 242, 254, 0.5);
+    }
+    .recog-toast.pop {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
     }
 
     /* Camera Top Controls */
@@ -380,7 +423,7 @@
     <div class="brand">
       <div class="logo-icon">✋</div>
       <div class="logo-text">SPATIAL GESTURE CALCULATOR</div>
-      <span class="pill-status">● 2-HAND TRACKING (3S HOLD)</span>
+      <span class="pill-status">● 2-HAND TRACKING & DRAW RECOGNIZER</span>
     </div>
     <div class="header-right">
       <div class="telemetry-pill">
@@ -402,12 +445,14 @@
         <video id="input_video" playsinline></video>
         <canvas id="output_canvas" width="960" height="720"></canvas>
         <canvas id="gesture_pad"></canvas>
+        <div class="draw-hint" id="draw_hint">✍ DRAW PAD ACTIVE — Write Digits (0-9) or Symbols (+, −, ×, ÷, =, AC, .)</div>
+        <div class="recog-toast" id="recog_toast">7</div>
 
         <div class="cam-top-bar">
           <button class="hud-btn" id="cam_toggle_btn">⏻ Start Camera</button>
           <button class="hud-btn active" id="air_mode_btn">Air Gestures (0-10 & Ops): ON</button>
-          <button class="hud-btn" id="draw_overlay_btn">✍ Draw / Swipe Pad: OFF</button>
-          <span class="hud-tag">Keypad Click: <b>Pinch / Tap Only</b></span>
+          <button class="hud-btn" id="draw_overlay_btn">✍ Draw Pad (0-9 & Ops): OFF</button>
+          <span class="hud-tag">Keypad Click: <b>Pinch / Tap</b></span>
         </div>
 
         <div class="hold-progress-wrap" id="hold_wrap">
@@ -416,8 +461,8 @@
 
         <div class="cam-bottom-hud">
           <div class="gesture-legend">
-            <span><b>0-10:</b> ✊=0, 1-5 (1H), 6-10 (2H)</span>
-            <span>👍<b>+</b> &nbsp; 🤙<b>−</b> &nbsp; 🤘<b>×</b> &nbsp; 👆(L)<b>÷</b> &nbsp; 🤟<b>=</b></span>
+            <span><b>Air Gestures:</b> ✊=0, 1-5 (1H), 6-10 (2H) | 👍<b>+</b> 🤙<b>−</b> 🤘<b>×</b> 👆(L)<b>÷</b> 🤟<b>=</b></span>
+            <span><b>Draw Pad:</b> Write Digits 0-9 &amp; Ops (+, −, ×, ÷, =, AC, .) via Mouse, Touch, or Air-Draw</span>
           </div>
           <div class="status-row">
             <div class="metric-box">
@@ -570,10 +615,20 @@
       btn.addEventListener("click", () => handleInput(btn.dataset.val, "Tap"));
     });
 
-    // Optional Draw/Swipe Overlay inside Camera Viewport
+    // Interactive Draw / Handwriting Recognizer Pad (0-9, +, -, *, /, =, AC, .)
     const pad = document.getElementById("gesture_pad");
     const pctx = pad.getContext("2d");
-    let drawMode = false, pts = [], drawing = false, lastTap = 0;
+    const drawHint = document.getElementById("draw_hint");
+    const recogToast = document.getElementById("recog_toast");
+    const drawOverlayBtn = document.getElementById("draw_overlay_btn");
+
+    let drawMode = false;
+    let currentStroke = [];
+    let currentStrokes = [];
+    let isDrawing = false;
+    let strokeDebounceTimer = null;
+    let airDrawing = false;
+    let lastAirPoint = null;
 
     function syncPadSize() {
       pad.width = pad.clientWidth;
@@ -582,58 +637,336 @@
     window.addEventListener("resize", syncPadSize);
     syncPadSize();
 
-    document.getElementById("draw_overlay_btn").addEventListener("click", e => {
+    drawOverlayBtn.addEventListener("click", () => {
       drawMode = !drawMode;
       pad.classList.toggle("active-pad", drawMode);
-      e.target.classList.toggle("active", drawMode);
-      e.target.textContent = `✍ Draw / Swipe Pad: ${drawMode ? "ON" : "OFF"}`;
+      drawOverlayBtn.classList.toggle("active", drawMode);
+      drawOverlayBtn.textContent = `✍ Draw Pad (0-9 & Ops): ${drawMode ? "ON" : "OFF"}`;
+      if (drawHint) drawHint.classList.toggle("visible", drawMode);
       syncPadSize();
+      pctx.clearRect(0, 0, pad.width, pad.height);
+      currentStroke = [];
+      currentStrokes = [];
+      if (holdWrap) holdWrap.classList.remove("visible");
     });
 
+    function showRecogToast(symbol) {
+      if (!recogToast) return;
+      const displaySym = symbol === "*" ? "×" : symbol === "/" ? "÷" : symbol === "-" ? "−" : symbol;
+      recogToast.textContent = displaySym;
+      recogToast.classList.add("pop");
+      setTimeout(() => {
+        recogToast.classList.remove("pop");
+      }, 700);
+    }
+
+    function drawStrokeSegment(fromPt, toPt) {
+      pctx.strokeStyle = "#00f2fe";
+      pctx.lineWidth = 5;
+      pctx.lineCap = "round";
+      pctx.lineJoin = "round";
+      pctx.shadowColor = "#00f2fe";
+      pctx.shadowBlur = 8;
+      pctx.beginPath();
+      pctx.moveTo(fromPt.x, fromPt.y);
+      pctx.lineTo(toPt.x, toPt.y);
+      pctx.stroke();
+    }
+
+    function endCurrentStroke() {
+      if (currentStroke.length >= 2) {
+        currentStrokes.push([...currentStroke]);
+      }
+      currentStroke = [];
+      clearTimeout(strokeDebounceTimer);
+      strokeDebounceTimer = setTimeout(() => {
+        if (currentStrokes.length > 0) {
+          const recognized = classifyDrawnStrokes(currentStrokes);
+          if (recognized) {
+            showRecogToast(recognized);
+            handleInput(recognized, "Draw Pad");
+          }
+          currentStrokes = [];
+          setTimeout(() => pctx.clearRect(0, 0, pad.width, pad.height), 400);
+        }
+      }, 450);
+    }
+
+    // Pointer (Mouse / Stylus / Touch) Drawing
     pad.addEventListener("pointerdown", e => {
       if (!drawMode) return;
-      const now = Date.now();
-      if (now - lastTap < 280) {
-        handleInput("=", "Double-Tap");
-        return;
-      }
-      lastTap = now;
-      drawing = true;
-      pts = [{ x: e.offsetX, y: e.offsetY }];
-      pctx.clearRect(0, 0, pad.width, pad.height);
+      isDrawing = true;
+      const pt = { x: e.offsetX, y: e.offsetY };
+      currentStroke = [pt];
+      pctx.beginPath();
+      pctx.arc(pt.x, pt.y, 2.5, 0, Math.PI * 2);
+      pctx.fillStyle = "#00f2fe";
+      pctx.fill();
     });
 
     pad.addEventListener("pointermove", e => {
-      if (!drawing) return;
-      pts.push({ x: e.offsetX, y: e.offsetY });
-      pctx.strokeStyle = "#00f2fe";
-      pctx.lineWidth = 4;
-      pctx.lineCap = "round";
-      pctx.beginPath();
-      pctx.moveTo(pts[pts.length - 2].x, pts[pts.length - 2].y);
-      pctx.lineTo(e.offsetX, e.offsetY);
-      pctx.stroke();
+      if (!drawMode || !isDrawing) return;
+      const pt = { x: e.offsetX, y: e.offsetY };
+      const prev = currentStroke[currentStroke.length - 1];
+      currentStroke.push(pt);
+      if (prev) drawStrokeSegment(prev, pt);
     });
 
     pad.addEventListener("pointerup", () => {
-      if (!drawing) return;
-      drawing = false;
-      if (pts.length < 5) return;
-      const s = pts[0], end = pts[pts.length - 1];
-      const dx = end.x - s.x, dy = end.y - s.y;
-      const dist = Math.hypot(dx, dy);
-      let len = 0;
-      for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i].x - pts[i-1].x, pts[i].y - pts[i-1].y);
-
-      if (len > 180 && dist < 55) handleInput("AC", "Loop");
-      else if (dist > 45) {
-        if (Math.abs(dx) > Math.abs(dy)) handleInput(dx > 0 ? "*" : "/", "Swipe");
-        else handleInput(dy < 0 ? "+" : "-", "Swipe");
-      }
-      setTimeout(() => pctx.clearRect(0, 0, pad.width, pad.height), 300);
+      if (!drawMode || !isDrawing) return;
+      isDrawing = false;
+      endCurrentStroke();
     });
 
-    // MediaPipe 2-Hand Tracking (0-10 Fingers + Operator Poses + 3.0s Hold + Pinch Click Only)
+    pad.addEventListener("pointerleave", () => {
+      if (isDrawing) {
+        isDrawing = false;
+        endCurrentStroke();
+      }
+    });
+
+    // Handwriting Recognizer Core Algorithms ($1 Template Matcher + Geometric Analysis)
+    function resample(points, n) {
+      let I = pathLength(points) / (n - 1);
+      if (I <= 0 || !Number.isFinite(I)) {
+        const p0 = points[0] || { x: 0, y: 0 };
+        return Array.from({ length: n }, () => ({ x: p0.x, y: p0.y }));
+      }
+      let D = 0.0;
+      let newPoints = [{ x: points[0].x, y: points[0].y }];
+      for (let i = 1; i < points.length; i++) {
+        let d = Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y);
+        if (D + d >= I) {
+          let qx = points[i - 1].x + ((I - D) / d) * (points[i].x - points[i - 1].x);
+          let qy = points[i - 1].y + ((I - D) / d) * (points[i].y - points[i - 1].y);
+          let q = { x: qx, y: qy };
+          newPoints.push(q);
+          points.splice(i, 0, q);
+          D = 0.0;
+        } else {
+          D += d;
+        }
+      }
+      while (newPoints.length < n) newPoints.push({ ...points[points.length - 1] });
+      return newPoints.slice(0, n);
+    }
+
+    function pathLength(pts) {
+      let d = 0;
+      for (let i = 1; i < pts.length; i++) d += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+      return d;
+    }
+
+    function boundingBox(pts) {
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      for (const p of pts) {
+        if (p.x < minX) minX = p.x;
+        if (p.x > maxX) maxX = p.x;
+        if (p.y < minY) minY = p.y;
+        if (p.y > maxY) maxY = p.y;
+      }
+      return { minX, maxX, minY, maxY, width: maxX - minX, height: maxY - minY };
+    }
+
+    function scaleTo(pts, size = 100) {
+      const box = boundingBox(pts);
+      const w = Math.max(box.width, 1);
+      const h = Math.max(box.height, 1);
+      return pts.map(p => ({
+        x: ((p.x - box.minX) / w) * size,
+        y: ((p.y - box.minY) / h) * size
+      }));
+    }
+
+    function translateToOrigin(pts) {
+      let cx = 0, cy = 0;
+      for (const p of pts) { cx += p.x; cy += p.y; }
+      cx /= pts.length; cy /= pts.length;
+      return pts.map(p => ({ x: p.x - cx, y: p.y - cy }));
+    }
+
+    function normalizeStroke(pts) {
+      return translateToOrigin(scaleTo(resample(pts.map(p => ({ ...p })), 32)));
+    }
+
+    function distance(pts, tmpl) {
+      let dist = 0;
+      for (let i = 0; i < pts.length; i++) {
+        dist += Math.hypot(pts[i].x - tmpl[i].x, pts[i].y - tmpl[i].y);
+      }
+      return dist / pts.length;
+    }
+
+    const RAW_TEMPLATES = {
+      "0": () => {
+        const pts = [];
+        for (let a = -Math.PI / 2; a <= 1.5 * Math.PI; a += 0.2) {
+          pts.push({ x: 50 + 35 * Math.cos(a), y: 50 + 45 * Math.sin(a) });
+        }
+        return pts;
+      },
+      "1": () => [
+        { x: 45, y: 10 }, { x: 50, y: 25 }, { x: 50, y: 50 }, { x: 50, y: 75 }, { x: 50, y: 95 }
+      ],
+      "2": () => [
+        { x: 20, y: 25 }, { x: 40, y: 10 }, { x: 75, y: 15 }, { x: 80, y: 35 },
+        { x: 55, y: 65 }, { x: 25, y: 95 }, { x: 85, y: 95 }
+      ],
+      "3": () => [
+        { x: 20, y: 15 }, { x: 75, y: 15 }, { x: 45, y: 48 },
+        { x: 75, y: 65 }, { x: 65, y: 90 }, { x: 25, y: 90 }
+      ],
+      "4": () => [
+        { x: 70, y: 15 }, { x: 20, y: 65 }, { x: 85, y: 65 }, { x: 65, y: 15 }, { x: 65, y: 95 }
+      ],
+      "5": () => [
+        { x: 80, y: 15 }, { x: 30, y: 15 }, { x: 25, y: 48 },
+        { x: 75, y: 52 }, { x: 75, y: 82 }, { x: 30, y: 90 }
+      ],
+      "6": () => [
+        { x: 75, y: 20 }, { x: 30, y: 45 }, { x: 25, y: 75 },
+        { x: 55, y: 95 }, { x: 80, y: 75 }, { x: 50, y: 55 }, { x: 25, y: 75 }
+      ],
+      "7": () => [
+        { x: 20, y: 15 }, { x: 85, y: 15 }, { x: 60, y: 55 }, { x: 45, y: 95 }
+      ],
+      "8": () => [
+        { x: 50, y: 15 }, { x: 30, y: 25 }, { x: 35, y: 45 }, { x: 65, y: 55 },
+        { x: 70, y: 80 }, { x: 50, y: 95 }, { x: 30, y: 80 }, { x: 35, y: 55 },
+        { x: 65, y: 45 }, { x: 70, y: 25 }, { x: 50, y: 15 }
+      ],
+      "9": () => [
+        { x: 75, y: 45 }, { x: 45, y: 15 }, { x: 25, y: 35 },
+        { x: 45, y: 58 }, { x: 75, y: 45 }, { x: 70, y: 75 }, { x: 65, y: 95 }
+      ],
+      "+": () => [
+        { x: 50, y: 15 }, { x: 50, y: 85 }, { x: 50, y: 50 }, { x: 15, y: 50 }, { x: 85, y: 50 }
+      ],
+      "-": () => [
+        { x: 15, y: 50 }, { x: 40, y: 50 }, { x: 65, y: 50 }, { x: 85, y: 50 }
+      ],
+      "*": () => [
+        { x: 20, y: 20 }, { x: 80, y: 80 }, { x: 50, y: 50 }, { x: 80, y: 20 }, { x: 20, y: 80 }
+      ],
+      "/": () => [
+        { x: 80, y: 15 }, { x: 50, y: 50 }, { x: 20, y: 85 }
+      ],
+      "=": () => [
+        { x: 20, y: 35 }, { x: 80, y: 35 }, { x: 50, y: 50 }, { x: 20, y: 65 }, { x: 80, y: 65 }
+      ],
+      "AC": () => {
+        const pts = [];
+        for (let a = 0; a <= 2.5 * Math.PI; a += 0.2) pts.push({ x: 50 + 40 * Math.cos(a), y: 50 + 40 * Math.sin(a) });
+        return pts;
+      }
+    };
+
+    const TEMPLATES = {};
+    for (const [name, fn] of Object.entries(RAW_TEMPLATES)) {
+      TEMPLATES[name] = normalizeStroke(fn());
+    }
+
+    function classifyDrawnStrokes(strokeList) {
+      if (!strokeList || strokeList.length === 0) return null;
+
+      const allPts = strokeList.flat();
+      if (allPts.length < 2) return null;
+
+      const totalLen = strokeList.reduce((acc, s) => acc + pathLength(s), 0);
+      const gBox = boundingBox(allPts);
+
+      // 1. Dot / Decimal point (.)
+      if (gBox.width < 18 && gBox.height < 18 && totalLen < 32) {
+        return ".";
+      }
+
+      // 2. Multi-stroke:
+      if (strokeList.length === 2) {
+        const s1 = strokeList[0], s2 = strokeList[1];
+        const b1 = boundingBox(s1), b2 = boundingBox(s2);
+
+        // Two parallel horizontal strokes -> "="
+        const isS1Horiz = b1.width > 1.6 * Math.max(b1.height, 4);
+        const isS2Horiz = b2.width > 1.6 * Math.max(b2.height, 4);
+        const yCenter1 = (b1.minY + b1.maxY) / 2;
+        const yCenter2 = (b2.minY + b2.maxY) / 2;
+        if (isS1Horiz && isS2Horiz && Math.abs(yCenter1 - yCenter2) > 8) {
+          return "=";
+        }
+
+        // One vertical + one horizontal -> "+"
+        const isS1Vert = b1.height > 1.6 * Math.max(b1.width, 4);
+        const isS2Vert = b2.height > 1.6 * Math.max(b2.width, 4);
+        if ((isS1Horiz && isS2Vert) || (isS1Vert && isS2Horiz)) {
+          return "+";
+        }
+
+        // Two crossing diagonals -> "*" (X)
+        const dx1 = Math.abs(s1[s1.length - 1].x - s1[0].x);
+        const dy1 = Math.abs(s1[s1.length - 1].y - s1[0].y);
+        const dx2 = Math.abs(s2[s2.length - 1].x - s2[0].x);
+        const dy2 = Math.abs(s2[s2.length - 1].y - s2[0].y);
+        if (dx1 > 12 && dy1 > 12 && dx2 > 12 && dy2 > 12) {
+          const slope1 = (s1[s1.length - 1].y - s1[0].y) / (s1[s1.length - 1].x - s1[0].x || 0.001);
+          const slope2 = (s2[s2.length - 1].y - s2[0].y) / (s2[s2.length - 1].x - s2[0].x || 0.001);
+          if (slope1 * slope2 < 0) {
+            return "*";
+          }
+        }
+      }
+
+      // 3. Single-stroke strong geometric checks:
+      if (strokeList.length === 1) {
+        const s = strokeList[0];
+        const sBox = boundingBox(s);
+        const startPt = s[0], endPt = s[s.length - 1];
+        const endToEndDist = Math.hypot(endPt.x - startPt.x, endPt.y - startPt.y);
+        const sLen = pathLength(s);
+
+        // Horizontal line -> "-"
+        if (sBox.width > 2.5 * Math.max(sBox.height, 4) && sLen > 20) {
+          return "-";
+        }
+
+        // Vertical line -> "1"
+        if (sBox.height > 2.5 * Math.max(sBox.width, 4) && sLen > 20) {
+          return "1";
+        }
+
+        // Diagonal forward slash -> "/"
+        const dx = endPt.x - startPt.x;
+        const dy = endPt.y - startPt.y;
+        if (sBox.width > 20 && sBox.height > 20 && Math.abs(dx) > 15 && Math.abs(dy) > 15) {
+          const isDiagSlash = (dx > 0 && dy < -12) || (dx < 0 && dy > 12);
+          if (isDiagSlash && endToEndDist > 0.65 * sLen) {
+            return "/";
+          }
+        }
+
+        // Very large multi-loop scrub -> "AC"
+        if (sLen > 350 && endToEndDist < 60) {
+          return "AC";
+        }
+      }
+
+      // 4. Fallback to 32-point normalized template matcher ($1 Recognizer)
+      const normPoints = normalizeStroke(allPts);
+      let bestMatch = null;
+      let bestDist = Infinity;
+
+      for (const [name, tmpl] of Object.entries(TEMPLATES)) {
+        if (name === "AC" && totalLen < 250) continue;
+        const dist = distance(normPoints, tmpl);
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestMatch = name;
+        }
+      }
+
+      return bestMatch;
+    }
+
+    // MediaPipe 2-Hand Tracking (0-10 Fingers + Operator Poses + 1.1s Hold + Air Drawing + Pinch Click)
     const videoEl = document.getElementById("input_video");
     const canvasEl = document.getElementById("output_canvas");
     const ctx = canvasEl.getContext("2d");
@@ -644,7 +977,7 @@
     let airGesturesOn = true;
     let pinchLock = false;
 
-    const HOLD_DURATION_MS = 3000;
+    const HOLD_DURATION_MS = 1100;
     let candidateGesture = null;
     let candidateStart = 0;
 
@@ -704,6 +1037,11 @@
         detectBadge.textContent = "NO HAND DETECTED";
         holdWrap.classList.remove("visible");
         candidateGesture = null;
+        if (airDrawing) {
+          airDrawing = false;
+          lastAirPoint = null;
+          endCurrentStroke();
+        }
         return;
       }
 
@@ -749,6 +1087,34 @@
         }
       }
 
+      // Air Drawing when Draw Mode is active
+      if (drawMode) {
+        const px = (1 - idx.x) * pad.width;
+        const py = idx.y * pad.height;
+        const isAirPinching = pinchDist < 0.065;
+
+        if (isAirPinching) {
+          if (!airDrawing) {
+            airDrawing = true;
+            currentStroke = [{ x: px, y: py }];
+            lastAirPoint = { x: px, y: py };
+          } else {
+            const curPt = { x: px, y: py };
+            if (lastAirPoint && Math.hypot(curPt.x - lastAirPoint.x, curPt.y - lastAirPoint.y) > 3) {
+              drawStrokeSegment(lastAirPoint, curPt);
+              currentStroke.push(curPt);
+              lastAirPoint = curPt;
+            }
+          }
+        } else {
+          if (airDrawing) {
+            airDrawing = false;
+            lastAirPoint = null;
+            endCurrentStroke();
+          }
+        }
+      }
+
       // Evaluate 0-10 fingers or Operator pose across 1 or 2 hands
       let totalFingers = 0;
       let detectedPose = null;
@@ -765,9 +1131,10 @@
       document.getElementById("hud_fingers").textContent = totalFingers;
 
       const activeSymbol = detectedPose ? detectedPose : String(totalFingers);
-      detectBadge.textContent = detectedPose ? `POSE: ${detectedPose}` : `NUMBER: ${totalFingers}`;
+      detectBadge.textContent = drawMode ? "DRAW MODE ACTIVE" : detectedPose ? `POSE: ${detectedPose}` : `NUMBER: ${totalFingers}`;
 
-      if (airGesturesOn && !onButton) {
+      // In Draw Mode, disable static hold to avoid conflicts while drawing!
+      if (airGesturesOn && !drawMode && !onButton) {
         if (candidateGesture !== activeSymbol) {
           candidateGesture = activeSymbol;
           candidateStart = now;
@@ -781,7 +1148,7 @@
 
           if (elapsed >= HOLD_DURATION_MS) {
             handleInput(activeSymbol, "Air Gesture");
-            candidateStart = now + 900; // brief cooldown before next trigger
+            candidateStart = now + 800; // brief cooldown before next trigger
             holdBar.style.width = "0%";
           }
         }
