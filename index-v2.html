@@ -183,6 +183,49 @@
       opacity: 1;
       transform: translate(-50%, -50%) scale(1);
     }
+    .draw-actions {
+      position: absolute;
+      bottom: 58px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: none;
+      gap: 10px;
+      z-index: 15;
+    }
+    .draw-actions.visible { display: flex; }
+    .draw-act-btn {
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid var(--border);
+      color: #e2e8f0;
+      padding: 7px 15px;
+      border-radius: 10px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+      transition: all 0.15s ease;
+    }
+    .draw-act-btn:hover {
+      transform: translateY(-2px);
+    }
+    .draw-act-btn.undo {
+      border-color: rgba(245, 158, 11, 0.6);
+      color: #fcd34d;
+    }
+    .draw-act-btn.clear {
+      border-color: rgba(0, 242, 254, 0.4);
+      color: #00f2fe;
+    }
+    .draw-act-btn.ac {
+      border-color: rgba(255, 75, 114, 0.6);
+      color: #fda4af;
+    }
+    .draw-act-btn.eval {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #040811;
+      border: none;
+    }
 
     /* Camera Top Controls */
     .cam-top-bar {
@@ -445,8 +488,14 @@
         <video id="input_video" playsinline></video>
         <canvas id="output_canvas" width="960" height="720"></canvas>
         <canvas id="gesture_pad"></canvas>
-        <div class="draw-hint" id="draw_hint">✍ DRAW PAD ACTIVE — Write Digits (0-9) or Symbols (+, −, ×, ÷, =, AC, .)</div>
+        <div class="draw-hint" id="draw_hint">✍ DRAW PAD ACTIVE — Draw Digits (0-9), Ops (+, −, ×, ÷, =), or Swipe ← to Undo</div>
         <div class="recog-toast" id="recog_toast">7</div>
+        <div class="draw-actions" id="draw_actions">
+          <button class="draw-act-btn undo" id="draw_undo_btn" title="Undo last input">⌫ Undo</button>
+          <button class="draw-act-btn clear" id="draw_clear_btn" title="Clear Pad">🧹 Clear Pad</button>
+          <button class="draw-act-btn ac" id="draw_ac_btn" title="All Clear">AC</button>
+          <button class="draw-act-btn eval" id="draw_eval_btn" title="Calculate">=</button>
+        </div>
 
         <div class="cam-top-bar">
           <button class="hud-btn" id="cam_toggle_btn">⏻ Start Camera</button>
@@ -621,6 +670,7 @@
     const drawHint = document.getElementById("draw_hint");
     const recogToast = document.getElementById("recog_toast");
     const drawOverlayBtn = document.getElementById("draw_overlay_btn");
+    const drawActions = document.getElementById("draw_actions");
 
     let drawMode = false;
     let currentStroke = [];
@@ -631,8 +681,11 @@
     let lastAirPoint = null;
 
     function syncPadSize() {
-      pad.width = pad.clientWidth;
-      pad.height = pad.clientHeight;
+      const rect = pad.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        pad.width = rect.width;
+        pad.height = rect.height;
+      }
     }
     window.addEventListener("resize", syncPadSize);
     syncPadSize();
@@ -643,6 +696,7 @@
       drawOverlayBtn.classList.toggle("active", drawMode);
       drawOverlayBtn.textContent = `✍ Draw Pad (0-9 & Ops): ${drawMode ? "ON" : "OFF"}`;
       if (drawHint) drawHint.classList.toggle("visible", drawMode);
+      if (drawActions) drawActions.classList.toggle("visible", drawMode);
       syncPadSize();
       pctx.clearRect(0, 0, pad.width, pad.height);
       currentStroke = [];
@@ -650,14 +704,36 @@
       if (holdWrap) holdWrap.classList.remove("visible");
     });
 
+    // Floating Draw Pad Toolbar Buttons
+    document.getElementById("draw_undo_btn").addEventListener("click", () => {
+      handleInput("DEL", "Draw Action");
+      showRecogToast("DEL");
+    });
+    document.getElementById("draw_clear_btn").addEventListener("click", () => {
+      pctx.clearRect(0, 0, pad.width, pad.height);
+      currentStroke = [];
+      currentStrokes = [];
+    });
+    document.getElementById("draw_ac_btn").addEventListener("click", () => {
+      handleInput("AC", "Draw Action");
+      showRecogToast("AC");
+      pctx.clearRect(0, 0, pad.width, pad.height);
+      currentStroke = [];
+      currentStrokes = [];
+    });
+    document.getElementById("draw_eval_btn").addEventListener("click", () => {
+      handleInput("=", "Draw Action");
+      showRecogToast("=");
+    });
+
     function showRecogToast(symbol) {
       if (!recogToast) return;
-      const displaySym = symbol === "*" ? "×" : symbol === "/" ? "÷" : symbol === "-" ? "−" : symbol;
+      const displaySym = symbol === "*" ? "×" : symbol === "/" ? "÷" : symbol === "-" ? "−" : symbol === "DEL" ? "⌫ Undo" : symbol;
       recogToast.textContent = displaySym;
       recogToast.classList.add("pop");
       setTimeout(() => {
         recogToast.classList.remove("pop");
-      }, 700);
+      }, 750);
     }
 
     function drawStrokeSegment(fromPt, toPt) {
@@ -692,35 +768,40 @@
       }, 450);
     }
 
-    // Pointer (Mouse / Stylus / Touch) Drawing
+    // Pointer (Mouse / Stylus / Touch) Drawing with coordinate safety & pointer capture
     pad.addEventListener("pointerdown", e => {
       if (!drawMode) return;
       isDrawing = true;
-      const pt = { x: e.offsetX, y: e.offsetY };
+      try { pad.setPointerCapture(e.pointerId); } catch (_) {}
+      const rect = pad.getBoundingClientRect();
+      const pt = { x: e.clientX - rect.left, y: e.clientY - rect.top };
       currentStroke = [pt];
       pctx.beginPath();
-      pctx.arc(pt.x, pt.y, 2.5, 0, Math.PI * 2);
+      pctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
       pctx.fillStyle = "#00f2fe";
       pctx.fill();
     });
 
     pad.addEventListener("pointermove", e => {
       if (!drawMode || !isDrawing) return;
-      const pt = { x: e.offsetX, y: e.offsetY };
+      const rect = pad.getBoundingClientRect();
+      const pt = { x: e.clientX - rect.left, y: e.clientY - rect.top };
       const prev = currentStroke[currentStroke.length - 1];
       currentStroke.push(pt);
       if (prev) drawStrokeSegment(prev, pt);
     });
 
-    pad.addEventListener("pointerup", () => {
+    pad.addEventListener("pointerup", e => {
       if (!drawMode || !isDrawing) return;
       isDrawing = false;
+      try { pad.releasePointerCapture(e.pointerId); } catch (_) {}
       endCurrentStroke();
     });
 
-    pad.addEventListener("pointerleave", () => {
+    pad.addEventListener("pointercancel", e => {
       if (isDrawing) {
         isDrawing = false;
+        try { pad.releasePointerCapture(e.pointerId); } catch (_) {}
         endCurrentStroke();
       }
     });
@@ -922,20 +1003,25 @@
         const startPt = s[0], endPt = s[s.length - 1];
         const endToEndDist = Math.hypot(endPt.x - startPt.x, endPt.y - startPt.y);
         const sLen = pathLength(s);
+        const dx = endPt.x - startPt.x;
+        const dy = endPt.y - startPt.y;
 
-        // Horizontal line -> "-"
-        if (sBox.width > 2.5 * Math.max(sBox.height, 4) && sLen > 20) {
+        // Swipe Left -> "DEL" (Undo / Backspace)
+        if (dx < -35 && Math.abs(dx) > 2.0 * Math.abs(dy) && sLen > 30) {
+          return "DEL";
+        }
+
+        // Swipe Right / Horizontal line -> "-"
+        if (dx > 30 && Math.abs(dx) > 2.2 * Math.max(sBox.height, 4) && sLen > 20) {
           return "-";
         }
 
         // Vertical line -> "1"
-        if (sBox.height > 2.5 * Math.max(sBox.width, 4) && sLen > 20) {
+        if (sBox.height > 2.2 * Math.max(sBox.width, 4) && sLen > 20) {
           return "1";
         }
 
         // Diagonal forward slash -> "/"
-        const dx = endPt.x - startPt.x;
-        const dy = endPt.y - startPt.y;
         if (sBox.width > 20 && sBox.height > 20 && Math.abs(dx) > 15 && Math.abs(dy) > 15) {
           const isDiagSlash = (dx > 0 && dy < -12) || (dx < 0 && dy > 12);
           if (isDiagSlash && endToEndDist > 0.65 * sLen) {
