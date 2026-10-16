@@ -283,55 +283,6 @@
       opacity: 1;
       transform: translate(-50%, -50%) scale(1);
     }
-    .draw-actions {
-      position: absolute;
-      bottom: 58px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: none;
-      gap: 10px;
-      z-index: 15;
-    }
-    .draw-actions.visible { display: flex; }
-    .draw-act-btn {
-      background: rgba(14, 22, 42, 0.65);
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-      border: 1px solid var(--glass-border);
-      color: #e2e8f0;
-      padding: 8px 16px;
-      border-radius: 12px;
-      font-size: 0.8rem;
-      font-weight: 700;
-      cursor: pointer;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 8px 24px rgba(0, 0, 0, 0.45);
-      transition: all 0.15s ease;
-    }
-    .draw-act-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 12px 28px rgba(0, 0, 0, 0.6);
-    }
-    .draw-act-btn.undo {
-      border-color: rgba(245, 158, 11, 0.5);
-      color: #fcd34d;
-      background: rgba(245, 158, 11, 0.12);
-    }
-    .draw-act-btn.clear {
-      border-color: rgba(0, 242, 254, 0.4);
-      color: #00f2fe;
-      background: rgba(0, 242, 254, 0.1);
-    }
-    .draw-act-btn.ac {
-      border-color: rgba(244, 63, 94, 0.5);
-      color: #fda4af;
-      background: rgba(244, 63, 94, 0.12);
-    }
-    .draw-act-btn.eval {
-      background: linear-gradient(135deg, rgba(0, 242, 254, 0.9), rgba(79, 172, 254, 0.95));
-      color: #030712;
-      border: 1px solid rgba(255, 255, 255, 0.5);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 8px 24px rgba(0, 242, 254, 0.4);
-    }
 
     /* Camera Top Glass Controls */
     .cam-top-bar {
@@ -683,14 +634,8 @@
         <video id="input_video" playsinline></video>
         <canvas id="output_canvas" width="960" height="720"></canvas>
         <canvas id="gesture_pad"></canvas>
-        <div class="draw-hint" id="draw_hint">✍ DRAW PAD ACTIVE — Draw Digits (0-9), Ops (+, −, ×, ÷, =), or Swipe ← to Undo</div>
+        <div class="draw-hint" id="draw_hint">✍ DRAW PAD ACTIVE — Draw Digits (0-9) | Swipe: ← (+) &nbsp; → (−) &nbsp; ↑ (×) &nbsp; ↓ (÷)</div>
         <div class="recog-toast" id="recog_toast">7</div>
-        <div class="draw-actions" id="draw_actions">
-          <button class="draw-act-btn undo" id="draw_undo_btn" title="Undo last input">⌫ Undo</button>
-          <button class="draw-act-btn clear" id="draw_clear_btn" title="Clear Pad">🧹 Clear Pad</button>
-          <button class="draw-act-btn ac" id="draw_ac_btn" title="All Clear">AC</button>
-          <button class="draw-act-btn eval" id="draw_eval_btn" title="Calculate">=</button>
-        </div>
 
         <div class="cam-top-bar">
           <button class="hud-btn" id="cam_toggle_btn">⏻ Start Camera</button>
@@ -706,7 +651,7 @@
         <div class="cam-bottom-hud">
           <div class="gesture-legend">
             <span><b>Air Gestures:</b> ✊=0, 1-5 (1H), 6-10 (2H) | 👍<b>+</b> 🤙<b>−</b> 🤘<b>×</b> 👆(L)<b>÷</b> 🤟<b>=</b></span>
-            <span><b>Draw Pad:</b> Write Digits 0-9 &amp; Ops (+, −, ×, ÷, =, AC, .) via Mouse, Touch, or Air-Draw</span>
+            <span><b>Draw Pad:</b> Write Digits 0-9 | Swipe: ← <b>+</b> &nbsp; → <b>−</b> &nbsp; ↑ <b>×</b> &nbsp; ↓ <b>÷</b></span>
           </div>
           <div class="status-row">
             <div class="metric-box">
@@ -865,7 +810,6 @@
     const drawHint = document.getElementById("draw_hint");
     const recogToast = document.getElementById("recog_toast");
     const drawOverlayBtn = document.getElementById("draw_overlay_btn");
-    const drawActions = document.getElementById("draw_actions");
 
     let drawMode = false;
     let currentStroke = [];
@@ -874,6 +818,7 @@
     let strokeDebounceTimer = null;
     let airDrawing = false;
     let lastAirPoint = null;
+    let lastTap = 0;
 
     function syncPadSize() {
       const rect = pad.getBoundingClientRect();
@@ -891,7 +836,6 @@
       drawOverlayBtn.classList.toggle("active", drawMode);
       drawOverlayBtn.textContent = `✍ Draw Pad (0-9 & Ops): ${drawMode ? "ON" : "OFF"}`;
       if (drawHint) drawHint.classList.toggle("visible", drawMode);
-      if (drawActions) drawActions.classList.toggle("visible", drawMode);
       syncPadSize();
       pctx.clearRect(0, 0, pad.width, pad.height);
       currentStroke = [];
@@ -899,31 +843,9 @@
       if (holdWrap) holdWrap.classList.remove("visible");
     });
 
-    // Floating Draw Pad Toolbar Buttons
-    document.getElementById("draw_undo_btn").addEventListener("click", () => {
-      handleInput("DEL", "Draw Action");
-      showRecogToast("DEL");
-    });
-    document.getElementById("draw_clear_btn").addEventListener("click", () => {
-      pctx.clearRect(0, 0, pad.width, pad.height);
-      currentStroke = [];
-      currentStrokes = [];
-    });
-    document.getElementById("draw_ac_btn").addEventListener("click", () => {
-      handleInput("AC", "Draw Action");
-      showRecogToast("AC");
-      pctx.clearRect(0, 0, pad.width, pad.height);
-      currentStroke = [];
-      currentStrokes = [];
-    });
-    document.getElementById("draw_eval_btn").addEventListener("click", () => {
-      handleInput("=", "Draw Action");
-      showRecogToast("=");
-    });
-
     function showRecogToast(symbol) {
       if (!recogToast) return;
-      const displaySym = symbol === "*" ? "×" : symbol === "/" ? "÷" : symbol === "-" ? "−" : symbol === "DEL" ? "⌫ Undo" : symbol;
+      const displaySym = symbol === "*" ? "×" : symbol === "/" ? "÷" : symbol === "-" ? "−" : symbol;
       recogToast.textContent = displaySym;
       recogToast.classList.add("pop");
       setTimeout(() => {
@@ -966,6 +888,17 @@
     // Pointer (Mouse / Stylus / Touch) Drawing with coordinate safety & pointer capture
     pad.addEventListener("pointerdown", e => {
       if (!drawMode) return;
+      const now = Date.now();
+      if (now - lastTap < 260) {
+        handleInput("=", "Double-Tap");
+        showRecogToast("=");
+        isDrawing = false;
+        pctx.clearRect(0, 0, pad.width, pad.height);
+        currentStroke = [];
+        currentStrokes = [];
+        return;
+      }
+      lastTap = now;
       isDrawing = true;
       try { pad.setPointerCapture(e.pointerId); } catch (_) {}
       const rect = pad.getBoundingClientRect();
@@ -1191,7 +1124,8 @@
         }
       }
 
-      // 3. Single-stroke strong geometric checks:
+      // 3. Single-stroke strong geometric checks & Directional Swipes:
+      // User Mapping: Left +, Right -, Top *, Bottom /
       if (strokeList.length === 1) {
         const s = strokeList[0];
         const sBox = boundingBox(s);
@@ -1201,19 +1135,19 @@
         const dx = endPt.x - startPt.x;
         const dy = endPt.y - startPt.y;
 
-        // Swipe Left -> "DEL" (Undo / Backspace)
-        if (dx < -35 && Math.abs(dx) > 2.0 * Math.abs(dy) && sLen > 30) {
-          return "DEL";
+        // Large circular scrub / loop -> "AC"
+        if (sLen > 280 && endToEndDist < 65) {
+          return "AC";
         }
 
-        // Swipe Right / Horizontal line -> "-"
-        if (dx > 30 && Math.abs(dx) > 2.2 * Math.max(sBox.height, 4) && sLen > 20) {
-          return "-";
-        }
-
-        // Vertical line -> "1"
-        if (sBox.height > 2.2 * Math.max(sBox.width, 4) && sLen > 20) {
-          return "1";
+        // User Specified Directional Swipes:
+        // Left +, Right -, Top *, Bottom /
+        if (sLen > 30 && (endToEndDist / sLen) > 0.75) {
+          if (Math.abs(dx) > 1.25 * Math.abs(dy)) {
+            return dx < 0 ? "+" : "-"; // Left: +, Right: -
+          } else if (Math.abs(dy) > 1.25 * Math.abs(dx)) {
+            return dy < 0 ? "*" : "/"; // Top: *, Bottom: /
+          }
         }
 
         // Diagonal forward slash -> "/"
@@ -1222,11 +1156,6 @@
           if (isDiagSlash && endToEndDist > 0.65 * sLen) {
             return "/";
           }
-        }
-
-        // Very large multi-loop scrub -> "AC"
-        if (sLen > 350 && endToEndDist < 60) {
-          return "AC";
         }
       }
 
