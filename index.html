@@ -574,9 +574,7 @@
       overflow: hidden;
       text-overflow: ellipsis;
       text-shadow: 0 0 20px rgba(0, 242, 254, 0.4);
-    }
-
-    /* Scientific Glass Row */
+    }    /* Scientific Glass Row */
     .sci-grid {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
@@ -788,6 +786,168 @@
       width: 18px; height: 18px;
       box-shadow: 0 0 24px var(--accent);
     }
+
+    /* Glass Icon System */
+    .btn-glass-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 7px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.04) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      margin-right: 6px;
+      flex-shrink: 0;
+    }
+    .glass-svg {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+      filter: drop-shadow(0 0 5px rgba(0, 242, 254, 0.6));
+      transition: all 0.2s ease;
+    }
+    .glass-svg-inline {
+      width: 15px;
+      height: 15px;
+      stroke: currentColor;
+      margin-right: 6px;
+      vertical-align: middle;
+      filter: drop-shadow(0 0 4px rgba(0, 242, 254, 0.7));
+    }
+    .logo-icon {
+      width: 34px; height: 34px; border-radius: 11px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.28) 0%, rgba(0, 242, 254, 0.25) 50%, rgba(124, 58, 237, 0.3) 100%);
+      display: flex; align-items: center; justify-content: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.7);
+      border-left: 1px solid rgba(255, 255, 255, 0.5);
+      border-right: 1px solid rgba(0, 242, 254, 0.3);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.4);
+      box-shadow: 
+        inset 0 1px 2px rgba(255, 255, 255, 0.8),
+        0 0 22px rgba(0, 242, 254, 0.5),
+        0 6px 16px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      position: relative;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .logo-icon::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 45%;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, transparent 100%);
+      border-radius: 10px 10px 0 0;
+      pointer-events: none;
+    }
+    .logo-icon .glass-svg {
+      width: 19px;
+      height: 19px;
+      stroke: #ffffff;
+      filter: drop-shadow(0 0 8px rgba(0, 242, 254, 0.85));
+    }
+    .glass-icon-btn {
+      width: 34px;
+      height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.03) 100%);
+      border-top: 1px solid rgba(255, 255, 255, 0.45);
+      border-left: 1px solid rgba(255, 255, 255, 0.3);
+      border-right: 1px solid rgba(255, 255, 255, 0.15);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.4);
+      box-shadow: 
+        inset 0 1px 2px rgba(255, 255, 255, 0.5),
+        0 4px 14px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(18px) saturate(200%);
+      -webkit-backdrop-filter: blur(18px) saturate(200%);
+      color: var(--accent);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .glass-icon-btn:hover {
+      background: linear-gradient(135deg, rgba(0, 242, 254, 0.3) 0%, rgba(0, 242, 254, 0.08) 100%);
+      border-top-color: #ffffff;
+      border-color: var(--accent);
+      box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.8), 0 0 20px rgba(0, 242, 254, 0.5);
+      transform: translateY(-1px);
+    }
+    .glass-icon-btn .glass-svg {
+      width: 17px;
+      height: 17px;
+    }
+    .cam-master-btn.glass-action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 11px;
+      background: linear-gradient(135deg, rgba(0, 242, 254, 0.85) 0%, rgba(79, 172, 254, 0.85) 50%, rgba(147, 51, 234, 0.85) 100%);
+      border-top: 1px solid rgba(255, 255, 255, 0.85);
+      border-left: 1px solid rgba(255, 255, 255, 0.6);
+      border-right: 1px solid rgba(255, 255, 255, 0.3);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.45);
+      box-shadow: 
+        inset 0 1px 2px rgba(255, 255, 255, 0.95),
+        0 6px 22px rgba(0, 242, 254, 0.5),
+        0 0 25px rgba(124, 58, 237, 0.35);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      color: #030712;
+      font-weight: 700;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .cam-master-btn.glass-action-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 
+        inset 0 1px 3px #ffffff,
+        0 8px 30px rgba(0, 242, 254, 0.75),
+        0 0 35px rgba(147, 51, 234, 0.5);
+    }
+    .cam-master-btn.glass-action-btn .btn-glass-icon {
+      background: rgba(255, 255, 255, 0.38);
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      box-shadow: inset 0 1px 1px #fff;
+      color: #030712;
+      margin-right: 0;
+    }
+    .cam-master-btn.glass-action-btn .btn-glass-icon .glass-svg {
+      stroke: #030712;
+      filter: none;
+    }
+    .glass-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 100%);
+      border-top: 1px solid rgba(255, 255, 255, 0.35);
+      border-left: 1px solid rgba(255, 255, 255, 0.2);
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25);
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #e2e8f0;
+      backdrop-filter: blur(8px);
+    }
+    .key.del .key-icon {
+      width: 22px;
+      height: 22px;
+      stroke: #fef3c7;
+      filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.6));
+    }
   </style>
 </head>
 <body>
@@ -804,7 +964,14 @@
 
   <header>
     <div class="brand">
-      <div class="logo-icon">✋</div>
+      <div class="logo-icon" title="Spatial Gesture Engine">
+        <svg class="glass-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v4"/>
+          <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v6"/>
+          <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/>
+          <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>
+        </svg>
+      </div>
       <div class="logo-text">SPATIAL GESTURE CALCULATOR</div>
       <span class="pill-status">● 2-HAND TRACKING & DRAW RECOGNIZER</span>
     </div>
@@ -816,8 +983,27 @@
         <span>|</span>
         <span id="fps_out">60 FPS</span>
       </div>
-      <button class="icon-btn" id="mute_btn" title="Toggle Sound">🔊</button>
-      <button class="cam-master-btn" id="master_cam_btn">📷 Start Camera</button>
+      <button class="icon-btn glass-icon-btn" id="mute_btn" title="Toggle Sound">
+        <svg class="glass-svg" id="sound_on_svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+        </svg>
+        <svg class="glass-svg" id="sound_off_svg" style="display:none;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <line x1="23" y1="9" x2="17" y2="15"></line>
+          <line x1="17" y1="9" x2="23" y2="15"></line>
+        </svg>
+      </button>
+      <button class="cam-master-btn glass-action-btn" id="master_cam_btn">
+        <span class="btn-glass-icon">
+          <svg class="glass-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path>
+            <circle cx="12" cy="13" r="3"></circle>
+          </svg>
+        </span>
+        <span class="btn-text">Start Camera</span>
+      </button>
     </div>
   </header>
 
@@ -828,13 +1014,47 @@
         <video id="input_video" playsinline></video>
         <canvas id="output_canvas" width="960" height="720"></canvas>
         <canvas id="gesture_pad"></canvas>
-        <div class="draw-hint" id="draw_hint">✍ DRAW PAD ACTIVE — Draw Digits (0-9) | Swipe: ← (+) &nbsp; → (−) &nbsp; ↑ (×) &nbsp; ↓ (÷)</div>
+        <div class="draw-hint" id="draw_hint">
+          <svg class="glass-svg-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+            <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+          </svg>
+          <span>DRAW PAD ACTIVE — Draw Digits (0-9) | Swipe: ← (+) &nbsp; → (−) &nbsp; ↑ (×) &nbsp; ↓ (÷)</span>
+        </div>
         <div class="recog-toast" id="recog_toast">7</div>
 
         <div class="cam-top-bar">
-          <button class="hud-btn" id="cam_toggle_btn">⏻ Start Camera</button>
-          <button class="hud-btn active" id="air_mode_btn">Air Gestures (0-10 & Ops): ON</button>
-          <button class="hud-btn" id="draw_overlay_btn">✍ Draw Pad (0-9 & Ops): OFF</button>
+          <button class="hud-btn glass-pill-btn" id="cam_toggle_btn">
+            <span class="btn-glass-icon">
+              <svg class="glass-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+                <line x1="12" y1="2" x2="12" y2="12"></line>
+              </svg>
+            </span>
+            <span class="hud-btn-text">Start Camera</span>
+          </button>
+          <button class="hud-btn glass-pill-btn active" id="air_mode_btn">
+            <span class="btn-glass-icon">
+              <svg class="glass-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 12h20"></path>
+                <path d="M20 12l-4-4"></path>
+                <path d="M4 12l4 4"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </span>
+            <span class="hud-btn-text">Air Gestures (0-10 & Ops): ON</span>
+          </button>
+          <button class="hud-btn glass-pill-btn" id="draw_overlay_btn">
+            <span class="btn-glass-icon">
+              <svg class="glass-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+                <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+                <path d="M2 2l7.586 7.586"></path>
+                <circle cx="11" cy="11" r="2"></circle>
+              </svg>
+            </span>
+            <span class="hud-btn-text">Draw Pad (0-9 & Ops): OFF</span>
+          </button>
           <span class="hud-tag">Keypad Click: <b>Pinch / Tap</b></span>
         </div>
 
@@ -844,8 +1064,8 @@
 
         <div class="cam-bottom-hud">
           <div class="gesture-legend">
-            <span><b>Air Gestures:</b> ✊=0, 1-5 (1H), 6-10 (2H) | 👍<b>+</b> 🤙<b>−</b> 🤘<b>×</b> 👆(L)<b>÷</b> 🤟<b>=</b></span>
-            <span><b>Draw Pad:</b> Write Digits 0-9 | Swipe: ← <b>+</b> &nbsp; → <b>−</b> &nbsp; ↑ <b>×</b> &nbsp; ↓ <b>÷</b></span>
+            <span><b>Air Gestures:</b> <span class="glass-badge">✊ 0</span> <span class="glass-badge">1–5 (1H)</span> <span class="glass-badge">6–10 (2H)</span> &nbsp;|&nbsp; <span class="glass-badge">👍 +</span> <span class="glass-badge">🤙 −</span> <span class="glass-badge">🤘 ×</span> <span class="glass-badge">👆 ÷</span> <span class="glass-badge">🤟 =</span></span>
+            <span><b>Draw Pad:</b> <span class="glass-badge">0–9 Digits</span> &nbsp;|&nbsp; <span class="glass-badge">← +</span> <span class="glass-badge">→ −</span> <span class="glass-badge">↑ ×</span> <span class="glass-badge">↓ ÷</span></span>
           </div>
           <div class="status-row">
             <div class="metric-box">
@@ -880,7 +1100,13 @@
 
       <div class="keypad-grid">
         <button class="key ac key-target" data-val="AC">AC</button>
-        <button class="key del key-target" data-val="DEL">⌫</button>
+        <button class="key del key-target" data-val="DEL" title="Backspace">
+          <svg class="glass-svg key-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path>
+            <line x1="18" y1="9" x2="12" y2="15"></line>
+            <line x1="12" y1="9" x2="18" y2="15"></line>
+          </svg>
+        </button>
         <button class="key op key-target" data-val="()">( )</button>
         <button class="key op key-target" data-val="/">÷</button>
 
@@ -904,7 +1130,6 @@
         <button class="key key-target" data-val=".">.</button>
         <button class="key eq key-target" data-val="=">=</button>
       </div>
-    </section>
   </main>
 
   <script>
@@ -932,9 +1157,14 @@
       osc.start(); osc.stop(audioCtx.currentTime + dur);
     }
 
-    document.getElementById("mute_btn").addEventListener("click", e => {
+    document.getElementById("mute_btn").addEventListener("click", () => {
       soundOn = !soundOn;
-      e.target.textContent = soundOn ? "🔊" : "🔇";
+      const onSvg = document.getElementById("sound_on_svg");
+      const offSvg = document.getElementById("sound_off_svg");
+      if (onSvg && offSvg) {
+        onSvg.style.display = soundOn ? "block" : "none";
+        offSvg.style.display = soundOn ? "none" : "block";
+      }
     });
 
     document.getElementById("deg_btn").addEventListener("click", e => {
@@ -1028,7 +1258,10 @@
       drawMode = !drawMode;
       pad.classList.toggle("active-pad", drawMode);
       drawOverlayBtn.classList.toggle("active", drawMode);
-      drawOverlayBtn.textContent = `✍ Draw Pad (0-9 & Ops): ${drawMode ? "ON" : "OFF"}`;
+      const txtSpan = drawOverlayBtn.querySelector(".hud-btn-text");
+      if (txtSpan) {
+        txtSpan.textContent = `Draw Pad (0-9 & Ops): ${drawMode ? "ON" : "OFF"}`;
+      }
       if (drawHint) drawHint.classList.toggle("visible", drawMode);
       syncPadSize();
       pctx.clearRect(0, 0, pad.width, pad.height);
@@ -1387,8 +1620,12 @@
 
     document.getElementById("air_mode_btn").addEventListener("click", e => {
       airGesturesOn = !airGesturesOn;
-      e.target.classList.toggle("active", airGesturesOn);
-      e.target.textContent = `Air Gestures (0-10 & Ops): ${airGesturesOn ? "ON" : "OFF"}`;
+      const btn = document.getElementById("air_mode_btn");
+      btn.classList.toggle("active", airGesturesOn);
+      const txtSpan = btn.querySelector(".hud-btn-text");
+      if (txtSpan) {
+        txtSpan.textContent = `Air Gestures (0-10 & Ops): ${airGesturesOn ? "ON" : "OFF"}`;
+      }
       holdWrap.classList.remove("visible");
     });
 
@@ -1567,8 +1804,8 @@
       const btn2 = document.getElementById("cam_toggle_btn");
       if (!camRunning) {
         camRunning = true;
-        btn1.textContent = "⏹ Stop Camera";
-        btn2.textContent = "⏻ Stop Camera";
+        btn1.innerHTML = `<span class="btn-glass-icon"><svg class="glass-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect></svg></span><span class="btn-text">Stop Camera</span>`;
+        btn2.innerHTML = `<span class="btn-glass-icon"><svg class="glass-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg></span><span class="hud-btn-text">Stop Camera</span>`;
         btn2.classList.add("active");
         cameraObj = new Camera(videoEl, {
           onFrame: async () => {
@@ -1581,8 +1818,8 @@
       } else {
         camRunning = false;
         if (cameraObj && cameraObj.stop) cameraObj.stop();
-        btn1.textContent = "📷 Start Camera";
-        btn2.textContent = "⏻ Start Camera";
+        btn1.innerHTML = `<span class="btn-glass-icon"><svg class="glass-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3"></circle></svg></span><span class="btn-text">Start Camera</span>`;
+        btn2.innerHTML = `<span class="btn-glass-icon"><svg class="glass-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg></span><span class="hud-btn-text">Start Camera</span>`;
         btn2.classList.remove("active");
         detectBadge.textContent = "CAMERA STOPPED";
       }
